@@ -1,0 +1,83 @@
+<html>
+<head>
+    <title>iTraffic</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
+    integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
+    crossorigin=""/>
+    <style>
+    .popup-notactive i{
+        color:#666!important;
+    }
+    </style>
+    <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
+    integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log=="
+    crossorigin=""></script>
+</head>
+<body style="margin: 0px;"><div style="width: 100%;position: fixed;top: 0px;z-index: 1000; text-align: center;margin-top: 15px;">
+    <div><img src="https://s3.amazonaws.com/quoti/image-uploads/ebc04b99c9e9e448a98b5c6cc5ca2b41.jpg" style="width:200px;border-radius: 15px;"/></div>
+</div>
+    <div id="mapid" style="height:calc(100% - 1px);"></div>
+    <script>
+    var greenIcon = L.icon({
+            iconUrl: 'trafficlight.png',
+        
+            iconSize:     [32, 80], // size of the icon
+            iconAnchor:   [17, 78], // point of the icon which will correspond to marker's location
+            shadowAnchor: [4, 62],  // the same for the shadow
+            popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
+        });
+    var greyIcon = L.icon({
+            iconUrl: 'trafficlight-grey.png',
+        
+            iconSize:     [32, 80], // size of the icon
+            iconAnchor:   [17, 78], // point of the icon which will correspond to marker's location
+            shadowAnchor: [4, 62],  // the same for the shadow
+            popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
+        });
+    var mymap = L.map('mapid').setView([-8.062263, -34.931326], 13);
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibGV2aWJuIiwiYSI6ImNqOWJmcHJ6MDFlMjMyd2xzNG5sMGtvMDUifQ.KjgRl8bR2g43Poy7XVNyTw', {
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    maxZoom: 18,
+    id: 'mapbox.streets',
+    accessToken: 'pk.eyJ1IjoibGV2aWJuIiwiYSI6ImNqOWJmcHJ6MDFlMjMyd2xzNG5sMGtvMDUifQ.KjgRl8bR2g43Poy7XVNyTw'
+}).addTo(mymap);
+var popup = L.popup()
+    .setLatLng([-8.062263, -34.931326])
+    .setContent("I am a standalone popup.")
+    .openOn(mymap);
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      $(function () {
+        var socket = io();
+            socket.emit('getNet', '1');
+        $('form').submit(function(){
+          socket.emit('chat message', $('#m').val());
+          $('#m').val('');
+          return false;
+        });
+        $('h1').on('click', function(){
+            console.log('entrando aq');
+            socket.emit('getNet', '1');
+        });
+        socket.on('chat message', function(msg){
+          $('#messages').append($('<li>').text(msg));
+        });
+        socket.on('getNet_result', function(msg){
+          console.log(msg);
+          msg.data.forEach(function(e) {
+              var config = {};
+              config.icon = (e.active=='true')?greenIcon:greyIcon;
+                var marker = L.marker([e.lat, e.lng], config).addTo(mymap);
+                var popupstatus = (e.active=='true')?"active":"notactive";
+                marker.bindPopup("<div class=\"popup-"+popupstatus+"\"><div><b>Semáforo "+e.name+"</b></div><div style=\"margin-top: 10px;\"><span style=\"color:#8BC34A;\"><i style=\"vertical-align: middle;\" class=\"material-icons\">traffic</i></span>Verde: "+e.temp.split(",")[0]+"s</div><div style=\"margin-top: 6px;\"><span style=\"color:#D32F2F;\"><i style=\"vertical-align: middle;\" class=\"material-icons\">traffic</i></span>Vermelho: "+e.temp.split(",")[1]+"s</div><div style=\"margin-top: 6px;\"><span style=\"color:#2196F3;\"><i style=\"vertical-align: middle;\" class=\"material-icons\">directions_car</i></span>Velocidade média: "+e.reference_speed*3.6+"km/h</div></div>").openPopup();
+          }, this);
+        });
+        $('#mapid').css("height", "100%");
+      });
+    </script>
+</body>
+</html>
